@@ -71,7 +71,11 @@ class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
       val handler = system.actorOf(Props[RequestHandler])
 
 
-      // FIXME: there're 2 caveats in 'tell'
+      // FIXME:
+      // use 'tell' partly because we don't know if RequestHandler would return
+      // chunked responses or just one single response at the end.
+      //
+      // there're 2 caveats in 'tell'
       // 1. this might not matter: spary's connection actor see the response
       // from the sender(RequestHandler) different to what it sent the request.
       // to(RquestHandlerStub).
