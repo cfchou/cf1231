@@ -38,10 +38,9 @@ class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
       val s = sender()
       val handler = system.actorOf(Props[RequestHandler])
 
-      // instead of 'ask', 'tell' and allow RequnestHandler to directly response
-      // to spary's connection actor
-      //handler ? req pipeTo(s)
-      handler.tell(req, s)
+      // instead of 'tell', 'ask' and allow RequnestHandler to being in a
+      // different JVM to spary's connection actor's
+      handler ? req pipeTo(s)
   }
 
   def chunkedReceive(ckHandler: ActorRef): Receive = {
@@ -73,21 +72,23 @@ class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
 
       // FIXME:
       // use 'tell' partly because we don't know if RequestHandler would return
-      // chunked responses or just one single response at the end.
+      // multiple chunked responses or just one single response at the end.
       //
-      // there're 2 caveats in 'tell'
-      // 1. this might not matter: spary's connection actor see the response
+      // there're 2 caveats in 'tell' to spary's connection actor
+      // 1. this might not matter: the connection actor see the response
       // from the sender(RequestHandler) different to what it sent the request.
       // to(RquestHandlerStub).
       // 2. RequestHandler has to be in the same JVM  as the connection actor
       //
-      // 'ask' might solve both but would cause all chunks arriving out of
-      // order. we can solve that by sequence multiple futures:
+      // 'ask' might solve both(assuming multiple chunked responses) but would
+      // cause all chunks arriving out of order. we can solve that by sequence
+      // multiple futures:
       // case Start => f = handler ? Start pipeTo sender()
       // case Chunk => f = f map { _ => handler ? Chunk pipeTo sender() }
       // ......
       //
-      // or introduce FSM
+      // or introduce FSM and 'tell' without allowing RequestHandler dealing
+      // with the connection actor.
 
       handler.tell(req, sender())
       context.become(chunkedReceive(handler))
