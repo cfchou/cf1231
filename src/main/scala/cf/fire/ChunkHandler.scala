@@ -9,7 +9,10 @@ import scala.concurrent.duration._
 
 class ChunkHandler(client: ActorRef, start: ChunkedRequestStart)
   extends Actor with ActorLogging {
+
   import start.request
+
+  implicit val system = this.context.system
 
   log.info("* * * * * RequestHandler Start...")
 
