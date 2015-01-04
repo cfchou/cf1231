@@ -4,14 +4,13 @@ import akka.actor._
 import akka.util.Timeout
 import akka.pattern.{ask, pipe}
 import com.typesafe.config.Config
+import spray.can.Http
+import spray.can.Http.RegisterChunkHandler
 import spray.http.{ChunkedMessageEnd, ChunkedRequestStart, MessageChunk, HttpRequest}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
-// A gate for ALL requests through the same connection. If a request is not
-// chunked, it'll be dealt with by one actor. For chunked requests that form a
-// big request, they are handled by one actor.
 class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
 
   log.debug("* * * * * RequestHandlerStub Start...")
@@ -24,81 +23,23 @@ class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
     Timeout.durationToTimeout(FiniteDuration(dura.length, dura.unit))
   }
 
-  override def receive: Receive = normalReceive
-
-  def normalReceive: Receive = {
-
+  override def receive: Receive = {
     case m: ChunkedRequestStart =>
       log.info("ChunkedRequestStart")
-      restartChunkedReceive(None, m)
+      val handler = system.actorOf(Props(classOf[ChunkHandler], sender, m))
+      sender ! RegisterChunkHandler(handler)
 
-    case req: HttpRequest =>
-      log.debug("HttpRequest: " + req)
-      // TODO: test if generalizing to a remote actor works
-      val s = sender()
-      val handler = system.actorOf(Props[RequestHandler])
+    case m: HttpRequest =>
+      log.debug("HttpRequest: " + m)
+      val parts = m.asPartStream()
+      val handler = system.actorOf(Props(classOf[ChunkHandler], sender,
+        parts.head.asInstanceOf[ChunkedRequestStart]))
+      parts.tail foreach {  handler ! _ }
 
-      // instead of 'tell', 'ask' and allow RequnestHandler to being in a
-      // different JVM to spary's connection actor's
-      handler ? req pipeTo(s)
-  }
+    case m: Http.ConnectionClosed =>
+      log.info("ConnectionClosed: " + m)
+      context.stop(self)
 
-  def chunkedReceive(ckHandler: ActorRef): Receive = {
-    case m: MessageChunk =>
-      log.info("MessageChunk")
-      ckHandler.tell(m, sender())
-
-    case m: ChunkedMessageEnd =>
-      log.info("ChunkedMessageEnd")
-      ckHandler.tell(m, sender())
-      context.become(normalReceive)
-
-    // A chunked request should not be interleaved with other requests
-    case m: ChunkedRequestStart =>
-      log.error("another ChunkedRequestStart")
-      restartChunkedReceive(Some(ckHandler), m)
-
-    case req: HttpRequest =>
-      log.error("unfinished chunked request")
-      context.stop(ckHandler)
-      context.become(normalReceive)
-      normalReceive(req)
-  }
-
-  def restartChunkedReceive(old: Option[ActorRef], req: ChunkedRequestStart) = {
-    def newChunkedReceive = {
-      val handler = system.actorOf(Props[RequestHandler])
-
-
-      // FIXME:
-      // use 'tell' partly because we don't know if RequestHandler would return
-      // multiple chunked responses or just one single response at the end.
-      //
-      // there're 2 caveats in 'tell' to spary's connection actor
-      // 1. this might not matter: the connection actor see the response
-      // from the sender(RequestHandler) different to what it sent the request.
-      // to(RquestHandlerStub).
-      // 2. RequestHandler has to be in the same JVM  as the connection actor
-      //
-      // 'ask' might solve both(assuming multiple chunked responses) but would
-      // cause all chunks arriving out of order. we can solve that by sequence
-      // multiple futures:
-      // case Start => f = handler ? Start pipeTo sender()
-      // case Chunk => f = f map { _ => handler ? Chunk pipeTo sender() }
-      // ......
-      //
-      // or introduce FSM and 'tell' without allowing RequestHandler dealing
-      // with the connection actor.
-
-      handler.tell(req, sender())
-      context.become(chunkedReceive(handler))
-    }
-    old match {
-      case Some(ckHandler) =>
-        context.stop(ckHandler)
-        newChunkedReceive
-      case None =>
-        newChunkedReceive
-    }
+    case m => log.warning("Unknown: " + m)
   }
 }

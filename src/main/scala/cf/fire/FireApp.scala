@@ -11,6 +11,7 @@ import spray.can.Http
 
 import scala.concurrent.{Await, Promise}
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.io.Source
 import scala.util.Try
 
@@ -34,9 +35,11 @@ object FireApp extends App {
 
   log.info("Stop...")
   Try { Await.ready(Promise[Unit].future, 5.seconds) }
+
   log.info("Shutdown...")
-  system.shutdown();
-  Try { Await.ready(Promise[Unit].future, 5.seconds) }
+  system.scheduler.scheduleOnce(5.seconds) {
+    system.shutdown();
+  }
 
   def monitor(input: BufferedReader): Unit = {
     try {
