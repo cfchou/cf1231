@@ -19,6 +19,7 @@ libraryDependencies ++= {
   Seq(
     "io.spray"            %%  "spray-client"    % sprayV,
     "com.typesafe.akka"   %%  "akka-actor"      % akkaV,
+    "com.typesafe.akka"   %%  "akka-testkit"    % akkaV,
     "org.apache.kafka"    %%  "kafka"           % "0.8.1.1"
       exclude("javax.jms", "jms")
       exclude("com.sun.jdmk", "jmxtools")

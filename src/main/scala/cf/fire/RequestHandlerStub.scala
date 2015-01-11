@@ -1,5 +1,6 @@
 package cf.fire
 
+import akka.actor.SupervisorStrategy.Stop
 import akka.actor._
 import akka.util.Timeout
 import akka.pattern.{ask, pipe}
@@ -23,16 +24,21 @@ class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
     Timeout.durationToTimeout(FiniteDuration(dura.length, dura.unit))
   }
 
+  override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
+    case _ => Stop
+  }
+
   override def receive: Receive = {
     case m: ChunkedRequestStart =>
       log.info("ChunkedRequestStart")
-      val handler = system.actorOf(Props(classOf[ChunkHandler], sender, m))
+      val handler = system.actorOf(Props(classOf[ChunkHandler], conf, sender,
+        m))
       sender ! RegisterChunkHandler(handler)
 
     case m: HttpRequest =>
       log.debug("HttpRequest: " + m)
       val parts = m.asPartStream()
-      val handler = system.actorOf(Props(classOf[ChunkHandler], sender,
+      val handler = system.actorOf(Props(classOf[ChunkHandler], conf, sender,
         parts.head.asInstanceOf[ChunkedRequestStart]))
       parts.tail foreach {  handler ! _ }
 
