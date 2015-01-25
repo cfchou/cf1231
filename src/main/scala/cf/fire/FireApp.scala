@@ -44,7 +44,7 @@ object FireApp extends App {
   def monitor(input: BufferedReader): Unit = {
     try {
       input.readLine() match {
-        case m: String if "stop" == m.toLowerCase()=> runner ! STOP
+        case m: String if "stop" == m.toLowerCase() => runner ! STOP
         case m =>
           log.debug(s"Unknown cmd: $m")
           monitor(input)

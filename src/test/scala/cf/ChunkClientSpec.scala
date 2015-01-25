@@ -25,7 +25,6 @@ class ChunkClientSpec extends TestKit(ActorSystem("ChunkClientSpec"))
   "FireApp " must {
 
     "allow clients to connect" in {
-
       val conf = ConfigFactory.load()
       val inf = conf.getString("fire.interface")
       val prt = conf.getInt("fire.port")
@@ -37,14 +36,12 @@ class ChunkClientSpec extends TestKit(ActorSystem("ChunkClientSpec"))
     }
 
     "receive the length of testString(in utf8) " when {
-
       println(s"default: ${Charset.defaultCharset().toString}")
-      // we can't be sure that defaultCharset must be UTF_8
+      // we can't be sure that defaultCharset must be UTF-8
       val len = new String(testString.getBytes,
         StandardCharsets.UTF_8).length
 
       "sending a request" in {
-
         // HttpEntity(String) sends ContentTypes.`text/plain(UTF-8)` and encodes
         // the given string in UTF-8
         peer.get ! HttpRequest(HttpMethods.POST, "/",
