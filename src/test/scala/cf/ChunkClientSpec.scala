@@ -17,6 +17,20 @@ class ChunkClientSpec extends TestKit(ActorSystem("ChunkClientSpec"))
   var peer: Option[ActorRef] = None
 
   val testString = "A" + "\u00ea" + "\u00f1" + "\u00fc" + "C"
+  val testJson = """{
+    | "info": "some info",
+    | "events": [ {
+    |   "id": "id0001",
+    |   "type": "EVENT_A",
+    |   "time": "1997-07-16T19:20:30.45+0100",
+    |   "payload": "{\"value\": 123 }"
+    | }, {
+    |   "id": "id0002",
+    |   "type": "EVENT_B",
+    |   "time": "1997-07-16T19:20:50.45+0100",
+    |   "payload": "{\"name\": \"whatever\", \"value\": 123 }"
+    | } ]
+    |}""".stripMargin
 
   override protected def afterAll(): Unit = {
     system.shutdown()
@@ -40,18 +54,23 @@ class ChunkClientSpec extends TestKit(ActorSystem("ChunkClientSpec"))
       // we can't be sure that defaultCharset must be UTF-8
       val len = new String(testString.getBytes,
         StandardCharsets.UTF_8).length
+      // we can't be sure that defaultCharset must be UTF-8
+      val lenJson = new String(testJson.getBytes,
+        StandardCharsets.UTF_8).length
+
 
       "sending a request" in {
         // HttpEntity(String) sends ContentTypes.`text/plain(UTF-8)` and encodes
         // the given string in UTF-8
         peer.get ! HttpRequest(HttpMethods.POST, "/",
-          entity = HttpEntity(testString))
+          entity = HttpEntity(testJson))
         val res = expectMsgType[HttpResponse]
         val resLen = res.entity.data.asString(HttpCharsets.`UTF-8`).toInt
-        println(s"received $len, $resLen")
-        resLen must equal (len)
+        println(s"received $lenJson, $resLen")
+        resLen must equal (lenJson)
       }
 
+      /*
       "sending a chunked request" in {
         val numTestString = 3
         val totalLen = numTestString * len
@@ -67,9 +86,10 @@ class ChunkClientSpec extends TestKit(ActorSystem("ChunkClientSpec"))
         val resLen = res.entity.data.asString(HttpCharsets.`UTF-8`).toInt
         resLen must equal (totalLen)
       }
-    }
+      */
+}
 
-  }
+}
 
 
 

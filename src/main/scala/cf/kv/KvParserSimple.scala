@@ -1,7 +1,7 @@
 package cf.kv
 
 import kafka.producer.KeyedMessage
-import org.joda.time.DateTime
+import org.joda.time.{LocalDate, DateTime}
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import grizzled.slf4j.Logger
@@ -11,23 +11,24 @@ example:
 {
   "info" = "some info",
   "events" = [ {
-    "id" = "id1 is a string"
-    "type" = "type1 is a string"
+    "id" = "id1 is a string",
+    "type" = "type1 is a string",
     # "time" = 1415241385529,
-    "time" = 1997-07-16T19:20:30.45+01:00
-    "payload" = "{\"value\": 123 }",
+    "time" = 1997-07-16T19:20:30.45+0100,
+    "payload" = "{\"value\": 123 }"
   }, {
-    "id" = "id2 is a string"
-    "type" = "type2 is a string"
-    "time" = 1997-07-16T19:20:30.45+01:00
-    "payload" = "{\"name\": \"whatever\", \"value\": 123 }",
+    "id" = "id2 is a string",
+    "type" = "type2 is a string",
+    "time" = 1997-07-16T19:20:30.45+0100,
+    "payload" = "{\"name\": \"whatever\", \"value\": 123 }"
   } ]
 }
 */
 
-object SimpleEvent {
+object KvParserSimple {
+
   implicit val SimpleEventReads = {
-    val jodaReads = Reads.jodaDateReads("yyyy-MM-ddTHH:mm:ss.sssZZ", identity)
+    val jodaReads = Reads.jodaDateReads("yyyy-MM-dd'T'HH:mm:ss.sssZ", identity)
     (
       (JsPath \ "id").read[String] and
         (JsPath \ "type").read[String] and
@@ -37,7 +38,7 @@ object SimpleEvent {
   }
 
   implicit val SimpleEventWrites = {
-    val jodaWrites = Writes.jodaDateWrites("yyyy-MM-ddTHH:mm:ss.sssZZ")
+    val jodaWrites = Writes.jodaDateWrites("yyyy-MM-dd'T'HH:mm:ss.sssZ")
     (
       (JsPath \ "id").write[String] and
         (JsPath \ "type").write[String] and
@@ -45,14 +46,16 @@ object SimpleEvent {
         (JsPath \ "payload").write[String]
       )(unlift(SimpleEvent.unapply))
   }
+
+  sealed case class SimpleEvent(id: String, event_type: String,
+                                            time: DateTime, payload: String)
+
+  def apply() = new KvParserSimple
 }
 
-sealed case class SimpleEvent(id: String, event_type: String, time: DateTime,
-                              payload: String)
+class KvParserSimple {
 
-class KvParserSimple() {
-
-  import SimpleEvent.{SimpleEventReads, SimpleEventWrites}
+  import KvParserSimple._
 
   val log = Logger[this.type]
 
@@ -67,12 +70,12 @@ class KvParserSimple() {
     }
   }
 
-  def getEvents(content: String): Seq[SimpleEvent] = {
+  private def getEvents(content: String): Seq[SimpleEvent] = {
     val json = Json.parse(content)
     getEvents(json)
   }
 
-  def getEvents(json: JsValue): Seq[SimpleEvent] = {
+  private def getEvents(json: JsValue): Seq[SimpleEvent] = {
     val eventJson = json \ "events"
 
     eventJson.validate[Seq[SimpleEvent]] match {
@@ -84,3 +87,4 @@ class KvParserSimple() {
     }
   }
 }
+

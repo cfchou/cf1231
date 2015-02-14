@@ -72,7 +72,7 @@ class FireApp(conf: Config) extends Actor with ActorLogging {
     // TODO: multiple interfaces/ports
     val inf = conf.getString("fire.interface")
     val prt = conf.getInt("fire.port")
-    val handler = system.actorOf(Props(classOf[ConnectionListener], conf))
+    val handler = context.actorOf(Props(classOf[ConnectionListener], conf))
 
     log.info(s"Bind $inf:$prt")
     IO(Http) ! Http.Bind(handler, interface = inf, port = prt)

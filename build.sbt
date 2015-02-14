@@ -20,7 +20,7 @@ libraryDependencies ++= {
     "io.spray"            %%  "spray-client"    % sprayV,
     "com.typesafe.akka"   %%  "akka-actor"      % akkaV,
     "com.typesafe.akka"   %%  "akka-testkit"    % akkaV,
-    "org.apache.kafka"    %%  "kafka"           % "0.8.1.1"
+    "org.apache.kafka"    %%  "kafka"           % "0.8.2.0"
       exclude("javax.jms", "jms")
       exclude("com.sun.jdmk", "jmxtools")
       exclude("com.sun.jmx", "jmxri"),
@@ -28,7 +28,7 @@ libraryDependencies ++= {
     // "com.fasterxml.jackson.core"  %   "jackson-core"  %   "2.4.4",
     // "com.typesafe.play"   %%  "play-iteratee"   % "2.3.7",
     "org.clapper"         %%  "grizzled-slf4j"  % "1.0.2",
-    "ch.qos.logback"      %   "logback-classic" % "1.1.2",
+    //"ch.qos.logback"      %   "logback-classic" % "1.1.2",
     "joda-time"           %   "joda-time"       % "2.7",
     "org.scalacheck"      %%  "scalacheck"      % "1.11.6",
     "org.scalatest"       %%  "scalatest"       % "2.2.1"   % "test"

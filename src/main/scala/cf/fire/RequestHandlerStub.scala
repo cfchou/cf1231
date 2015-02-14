@@ -16,7 +16,6 @@ class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
 
   log.debug("* * * * * RequestHandlerStub Start...")
 
-  implicit val system = this.context.system
   implicit val ec = this.context.dispatcher
   implicit val reqTimeout = {
     val dura = Duration(conf.getString("spray.can.server.request-timeout"))
@@ -24,21 +23,20 @@ class RequestHandlerStub(conf: Config) extends Actor with ActorLogging {
     Timeout.durationToTimeout(FiniteDuration(dura.length, dura.unit))
   }
 
-  override def supervisorStrategy: SupervisorStrategy = OneForOneStrategy() {
-    case _ => Stop
-  }
+  override def supervisorStrategy: SupervisorStrategy =
+    SupervisorStrategy.stoppingStrategy
 
   override def receive: Receive = {
     case m: ChunkedRequestStart =>
       log.info("ChunkedRequestStart")
-      val handler = system.actorOf(Props(classOf[ChunkHandler], conf, sender,
+      val handler = context.actorOf(Props(classOf[ChunkHandler], conf, sender,
         m))
       sender ! RegisterChunkHandler(handler)
 
     case m: HttpRequest =>
       log.debug("HttpRequest: " + m)
       val parts = m.asPartStream()
-      val handler = system.actorOf(Props(classOf[ChunkHandler], conf, sender,
+      val handler = context.actorOf(Props(classOf[ChunkHandler], conf, sender,
         parts.head.asInstanceOf[ChunkedRequestStart]))
       parts.tail foreach {  handler ! _ }
 
