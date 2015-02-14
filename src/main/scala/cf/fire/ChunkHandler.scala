@@ -56,7 +56,7 @@ class ChunkHandler(conf: Config, client: ActorRef, start: ChunkedRequestStart)
       val msgs = parser.parseMessages(s)
       val producer = new SimpleConf {}.newProducer[String, String](conf)
       msgs.foreach( producer.send(_) )
-
+      producer.close()
 
       context.stop(self)
     case m => log.warning("Unknown: " + m)
