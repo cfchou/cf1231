@@ -5,7 +5,8 @@ import java.io.BufferedReader
 import akka.actor.Actor.Receive
 import akka.actor._
 import akka.io.{Tcp, IO}
-import com.typesafe.config.{Config, ConfigFactory}
+import cf.conf.SimpleConf
+import cf.kv.{KvParserSimple, KProducer}
 import grizzled.slf4j.Logger
 import spray.can.Http
 
@@ -22,8 +23,7 @@ object FireApp extends App {
 
   val log = Logger[this.type]
   val system = ActorSystem("FireApp")
-  val conf = ConfigFactory.load
-  val runner = system.actorOf(Props(classOf[FireApp], conf))
+  val runner = system.actorOf(Props(classOf[FireApp]))
 
   log.info("Start...")
 
@@ -53,11 +53,11 @@ object FireApp extends App {
       case e: Exception => log.error(e)
     }
   }
-
 }
 
 
-class FireApp(conf: Config) extends Actor with ActorLogging {
+
+class FireApp extends Actor with ActorLogging {
 
   import FireApp.{START, STOP}
 
@@ -69,10 +69,14 @@ class FireApp(conf: Config) extends Actor with ActorLogging {
   var listener: Option[ActorRef] = None
 
   lazy val start = {
+
+   val producer = context.actorOf(Props(classOf[KProducer[String, String]],
+      SimpleConf))
+
     // TODO: multiple interfaces/ports
-    val inf = conf.getString("fire.interface")
-    val prt = conf.getInt("fire.port")
-    val handler = context.actorOf(Props(classOf[ConnectionListener], conf))
+    val inf = SimpleConf.getString("fire.interface")
+    val prt = SimpleConf.getInt("fire.port")
+    val handler = context.actorOf(Props(classOf[ConnectionListener], producer))
 
     log.info(s"Bind $inf:$prt")
     IO(Http) ! Http.Bind(handler, interface = inf, port = prt)

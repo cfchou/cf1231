@@ -1,5 +1,6 @@
 package cf.kv
 
+import akka.actor.{ActorLogging, Props}
 import kafka.producer.KeyedMessage
 import org.joda.time.{LocalDate, DateTime}
 import play.api.libs.json._
@@ -50,19 +51,20 @@ object KvParserSimple {
   sealed case class SimpleEvent(id: String, event_type: String,
                                             time: DateTime, payload: String)
 
-  def apply() = new KvParserSimple
 }
 
-class KvParserSimple {
+trait KvParserSimple extends KvParser[String, String] {
 
   import KvParserSimple._
 
-  val log = Logger[this.type]
+  private val log = Logger[this.type]
+  log.info("* * * * * KvParser...")
 
-  def parseMessages(content: String): Seq[KeyedMessage[String, String]] = {
+  override def parseMessages(content: String)
+  : Seq[KeyedMessage[String, String]] = {
     val json = Json.parse(content)
     val events = getEvents(json)
-    log.debug(s"${events.length}")
+    log.info(s"parseMessages ${events.length}")
 
     events.map { ev =>
       KeyedMessage[String, String](ev.event_type, ev.event_type,
@@ -87,4 +89,5 @@ class KvParserSimple {
     }
   }
 }
+
 

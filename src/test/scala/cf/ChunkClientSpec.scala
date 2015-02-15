@@ -29,6 +29,11 @@ class ChunkClientSpec extends TestKit(ActorSystem("ChunkClientSpec"))
     |   "type": "EVENT_B",
     |   "time": "1997-07-16T19:20:50.45+0100",
     |   "payload": "{\"name\": \"whatever\", \"value\": 123 }"
+    | }, {
+    |   "id": "id0003",
+    |   "type": "EVENT_A",
+    |   "time": "1997-07-16T19:20:50.45Z",
+    |   "payload": "{\"name\": \"what\" }"
     | } ]
     |}""".stripMargin
 
@@ -87,11 +92,7 @@ class ChunkClientSpec extends TestKit(ActorSystem("ChunkClientSpec"))
         resLen must equal (totalLen)
       }
       */
-}
+    }
 
-}
-
-
-
-
+  }
 }

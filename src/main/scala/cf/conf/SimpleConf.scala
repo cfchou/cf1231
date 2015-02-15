@@ -2,12 +2,20 @@ package cf.conf
 
 import java.util.Properties
 
-import com.typesafe.config.Config
+import com.typesafe.config.{ConfigFactory, Config}
 import kafka.producer.{Producer, ProducerConfig}
 
-trait SimpleConf extends KafkaConf {
+object SimpleConf {
+  type SimpleConf = this.type
 
-  override def newProducer[K, V](conf: Config): Producer[K, V] = {
+  implicit def toConfig[K, V](cf: SimpleConf): Config = cf.conf
+
+  implicit def toProducerConfig[K, V](cf: SimpleConf): ProducerConfig =
+    cf.producer_conf
+
+  lazy val conf = ConfigFactory.load
+
+  lazy val producer_conf = new ProducerConfig({
     val props = new Properties
 
     props.put("metadata.broker.list", conf.getString("metadata.broker.list"))
@@ -15,7 +23,7 @@ trait SimpleConf extends KafkaConf {
       conf.getInt("request.required.acks").toString)
     props.put("producer.type", conf.getString("producer.type"))
     props.put("serializer.class", conf.getString("serializer.class"))
-
-    new Producer[K, V](new ProducerConfig(props))
-  }
+    props
+  })
 }
+
