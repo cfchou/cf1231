@@ -5,8 +5,17 @@ import akka.actor.{Props, ActorLogging, Actor}
 import cf.conf.SimpleConf.SimpleConf
 import kafka.producer.{KeyedMessage, ProducerConfig, Producer}
 
+import scala.reflect.runtime.universe.{TypeTag, typeOf}
 
-class KProducer[K, V](conf: SimpleConf)
+case class SeqMsg[U](ms: Seq[U], tag: TypeTag[U])
+
+object KProducer {
+  def props[K:TypeTag, V:TypeTag](conf: SimpleConf) = {
+    Props(new KProducer[K, V](conf))
+  }
+}
+
+class KProducer[K:TypeTag, V:TypeTag](conf: SimpleConf)
   extends Actor with ActorLogging {
 
   log.info("* * * * * KProducer Start...")
@@ -24,17 +33,19 @@ class KProducer[K, V](conf: SimpleConf)
   }
 
   override def receive: Receive = {
-    case m: KeyedMessage[K, V] =>
-      producer.send(m)
-    case ms: Seq[KeyedMessage[K, V]] =>
-      // FIXME: uncheck type warning
-      producer.send(ms: _*)
-    /*
-    case Seq(a, rest@ _*) if a.isInstanceOf[KeyedMessage[K, V]] =>
-      producer.send(rest)
-    */
+    case SeqMsg(ms, tag) if tag.tpe <:< typeOf[KeyedMessage[K, V]] =>
+      // Seq[_] rather than Seq[KeyedMessage[K, V]] is seen at runtime. But
+      // since the type is checked in case clause, no cast exception would
+      // happen.
+      // We still need to make static type check for send, therefore we can't
+      // write Seq[_] or Seq[KeyedMessage[_, _]]
+      val tmp = ms.asInstanceOf[Seq[KeyedMessage[K, V]]]
+      producer.send(tmp: _*)
     case _ =>
       log.error("Unknown")
   }
-
 }
+
+
+
+

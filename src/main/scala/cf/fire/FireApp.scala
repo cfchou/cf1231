@@ -6,7 +6,7 @@ import akka.actor.Actor.Receive
 import akka.actor._
 import akka.io.{Tcp, IO}
 import cf.conf.SimpleConf
-import cf.kv.{KvParserSimple, KProducer}
+import cf.kv.KProducer
 import grizzled.slf4j.Logger
 import spray.can.Http
 
@@ -70,8 +70,9 @@ class FireApp extends Actor with ActorLogging {
 
   lazy val start = {
 
-   val producer = context.actorOf(Props(classOf[KProducer[String, String]],
-      SimpleConf))
+    //val producer = context.actorOf(Props(classOf[KProducer[String, String]],
+    // SimpleConf))
+    val producer = context.actorOf(KProducer.props[String, String](SimpleConf))
 
     // TODO: multiple interfaces/ports
     val inf = SimpleConf.getString("fire.interface")
